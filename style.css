@@ -131,11 +131,8 @@ canvas {
     border-radius: 8px;
     cursor: crosshair;
     background: white;
-    display: block;
-    margin: 20px auto;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 900px;
     height: auto;
 }
 
@@ -143,11 +140,36 @@ canvas:active {
     cursor: grabbing;
 }
 
+/* Preview Layout - 2 Column */
+.preview-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 25px;
+    align-items: start;
+}
+
+.canvas-column {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.canvas-column canvas {
+    margin: 0;
+    max-width: 100%;
+}
+
+.controls-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
 /* Generation Controls */
 .generation-controls {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
     margin-bottom: 25px;
 }
 
@@ -156,35 +178,47 @@ canvas:active {
     background: #f8f9fa;
     border-radius: 8px;
     border: 1px solid #dee2e6;
-    text-align: center;
 }
 
 .gen-option h3 {
-    font-size: 1em;
+    font-size: 0.95em;
     color: #555;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+}
+
+.gen-option .btn {
+    width: 100%;
 }
 
 /* Preview Section */
 .preview-section {
-    margin-top: 20px;
-    padding: 20px;
+    padding: 15px;
     background: #f0f8ff;
     border-radius: 8px;
 }
 
 .preview-section h3 {
-    font-size: 1.1em;
+    font-size: 1em;
     color: #333;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 }
 
 .playback-controls {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 15px;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.playback-controls .btn {
+    flex: 1;
+}
+
+.preview-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 14px;
 }
 
 .progress-control {
@@ -441,8 +475,18 @@ details#gcodePreviewPanel > summary {
         padding: 15px;
     }
     
-    .generation-controls {
+    /* Mobile: Stack preview layout vertically */
+    .preview-layout {
         grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .controls-column {
+        order: -1; /* Put controls above canvas on mobile */
+    }
+    
+    .generation-controls {
+        flex-direction: column;
     }
     
     .gcode-compare {
@@ -474,7 +518,11 @@ details#gcodePreviewPanel > summary {
     
     .playback-controls {
         flex-direction: column;
-        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .playback-controls .btn {
+        width: 100%;
     }
     
     .download-options {

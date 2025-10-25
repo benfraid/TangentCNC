@@ -51,9 +51,6 @@
             </div>
         </section>
 
-        <!-- Canvas -->
-        <canvas id="canvas" width="900" height="600"></canvas>
-
         <!-- Workflow Step 2: Configure -->
         <section class="workflow-section">
             <div class="section-header">
@@ -125,51 +122,64 @@
                 <h2>Generate & Preview</h2>
             </div>
             <div class="section-content">
-                <div class="generation-controls">
-                    <div class="gen-option">
-                        <h3>Base G-code (XYZ only)</h3>
-                        <button onclick="generateGCodePreview()" class="btn btn-primary">⚙️ Generate</button>
+                <!-- 2-column layout: Canvas + Preview Controls -->
+                <div class="preview-layout">
+                    <!-- Left: Canvas -->
+                    <div class="canvas-column">
+                        <canvas id="canvas" width="900" height="600"></canvas>
                     </div>
-                    <div class="gen-option">
-                        <h3>Oriented G-code (XYZ + C-axis)</h3>
-                        <button onclick="generateOrientedGCodePreview()" class="btn btn-primary">🧭 Generate with Orientation</button>
-                    </div>
-                </div>
-                
-                <!-- Preview Controls -->
-                <div class="preview-section">
-                    <h3>Preview Animation</h3>
-                    <div class="playback-controls">
-                        <button id="btnPlayPause" onclick="togglePlay()" class="btn btn-primary">▶ Play</button>
-                        <button onclick="resetPreview()" class="btn btn-secondary">⏮ Reset</button>
-                        <div class="preview-mode-inline">
-                            <span class="inline-label">Mode:</span>
-                            <label>
-                                <input type="radio" name="previewMode" value="base" checked onchange="setPreviewMode('base')">
-                                Base
-                            </label>
-                            <label>
-                                <input type="radio" name="previewMode" value="oriented" onchange="setPreviewMode('oriented')">
-                                Oriented
-                            </label>
+                    
+                    <!-- Right: Preview Controls -->
+                    <div class="controls-column">
+                        <div class="generation-controls">
+                            <div class="gen-option">
+                                <h3>Base G-code (XYZ only)</h3>
+                                <button onclick="generateGCodePreview()" class="btn btn-primary">⚙️ Generate</button>
+                            </div>
+                            <div class="gen-option">
+                                <h3>Oriented G-code (XYZ + C-axis)</h3>
+                                <button onclick="generateOrientedGCodePreview()" class="btn btn-primary">🧭 Generate with Orientation</button>
+                            </div>
                         </div>
-                        <label>
-                            <input type="checkbox" id="showDirection" checked onchange="toggleDirection(this.checked)">
-                            Show direction
-                        </label>
-                        <label>
-                            Speed:
-                            <input type="range" id="previewSpeed" min="10" max="800" value="200" 
-                                   oninput="updatePreviewSpeed(this.value)" style="width: 120px;">
-                            <span id="previewSpeedValue">200 px/s</span>
-                        </label>
-                    </div>
-                    <div class="progress-control">
-                        <label style="flex:1">
-                            Progress:
-                            <input type="range" id="previewProgress" min="0" max="100" value="0" step="0.1" style="width: 100%">
-                            <span id="previewProgressValue">0%</span>
-                        </label>
+                        
+                        <!-- Preview Controls -->
+                        <div class="preview-section">
+                            <h3>Preview Animation</h3>
+                            <div class="playback-controls">
+                                <button id="btnPlayPause" onclick="togglePlay()" class="btn btn-primary">▶ Play</button>
+                                <button onclick="resetPreview()" class="btn btn-secondary">⏮ Reset</button>
+                            </div>
+                            <div class="preview-options">
+                                <div class="preview-mode-inline">
+                                    <span class="inline-label">Mode:</span>
+                                    <label>
+                                        <input type="radio" name="previewMode" value="base" checked onchange="setPreviewMode('base')">
+                                        Base
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="previewMode" value="oriented" onchange="setPreviewMode('oriented')">
+                                        Oriented
+                                    </label>
+                                </div>
+                                <label>
+                                    <input type="checkbox" id="showDirection" checked onchange="toggleDirection(this.checked)">
+                                    Show direction
+                                </label>
+                                <label>
+                                    Speed:
+                                    <input type="range" id="previewSpeed" min="10" max="800" value="200" 
+                                           oninput="updatePreviewSpeed(this.value)" style="width: 100px;">
+                                    <span id="previewSpeedValue">200 px/s</span>
+                                </label>
+                            </div>
+                            <div class="progress-control">
+                                <label style="flex:1">
+                                    Progress:
+                                    <input type="range" id="previewProgress" min="0" max="100" value="0" step="0.1" style="width: 100%">
+                                    <span id="previewProgressValue">0%</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
