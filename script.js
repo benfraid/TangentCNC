@@ -689,8 +689,10 @@ function drawPreviewOverlay() {
     previewCtx.stroke();
 
     if (preview.showDirection) {
-        // Always align arrow with the path tangent at the tip, independent of C-axis tool orientation
-        const arrowAngleRad = Math.atan2(-pt.ny, pt.nx);
+        // In base mode, keep arrow fixed pointing up. In oriented mode, align with path tangent.
+        const arrowAngleRad = (preview.mode === 'oriented')
+            ? Math.atan2(-pt.ny, pt.nx) // tangent direction
+            : -Math.PI / 2;             // fixed up (canvas up)
         const dirX = Math.cos(arrowAngleRad);
         const dirY = Math.sin(arrowAngleRad);
         const L = isMobile ? 36 : 24;
