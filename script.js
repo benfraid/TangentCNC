@@ -10,7 +10,7 @@ let deleteMode = false; // Mobile-friendly deletion toggle
 let showCurve = true;
 let curveResolution = 100; // Number of segments per curve section
 
-// Machining parameters (Phase 3)
+// Machining parameters
 const machineSettings = {
     unit: 'mm', // 'mm' or 'inch'
     scaleFactor: 0.1, // pixels to real units
@@ -164,10 +164,14 @@ canvas.addEventListener("touchend", (e) => {
 // ============================================
 
 function getPointAt(x, y, radius = 8) {
+    // Larger hit radius on mobile for easier tapping
+    const isMobile = window.innerWidth <= 768;
+    const hitRadius = isMobile ? 20 : radius;
+    
     for (let i = 0; i < points.length; i++) {
         const p = points[i];
         const dist = Math.sqrt((p.x - x) ** 2 + (p.y - y) ** 2);
-        if (dist < radius) {
+        if (dist < hitRadius) {
             return i;
         }
     }
@@ -265,19 +269,24 @@ function draw() {
     
     // Draw points
     points.forEach((p, index) => {
+        // Larger points on mobile for easier visibility and tapping
+        const isMobile = window.innerWidth <= 768;
+        const pointRadius = isMobile ? 10 : 6;
+        const strokeWidth = isMobile ? 3 : 2;
+        
         ctx.fillStyle = "#ff6600";
         ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = strokeWidth;
         
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, pointRadius, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
         
         // Draw point number
         ctx.fillStyle = "#000000";
-        ctx.font = "10px Arial";
-        ctx.fillText(index + 1, p.x + 10, p.y - 10);
+        ctx.font = isMobile ? "bold 14px Arial" : "10px Arial";
+        ctx.fillText(index + 1, p.x + (isMobile ? 14 : 10), p.y - (isMobile ? 14 : 10));
     });
 
     // Draw preview marker overlay
