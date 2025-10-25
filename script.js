@@ -689,8 +689,10 @@ function drawPreviewOverlay() {
     previewCtx.stroke();
 
     if (preview.showDirection) {
-        const dirX = Math.cos(angleRad);
-        const dirY = Math.sin(angleRad); // angleRad is already in geometric coords (Y-up), sin gives canvas Y (Y-down)
+        // Always align arrow with the path tangent at the tip, independent of C-axis tool orientation
+        const arrowAngleRad = Math.atan2(-pt.ny, pt.nx);
+        const dirX = Math.cos(arrowAngleRad);
+        const dirY = Math.sin(arrowAngleRad);
         const L = isMobile ? 36 : 24;
         const ax = tipX + dirX * L;
         const ay = tipY + dirY * L;
