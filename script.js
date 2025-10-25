@@ -4,6 +4,7 @@ let points = [];
 let selectedPoint = null;
 let isDragging = false;
 let deleteMode = false; // Mobile-friendly deletion toggle
+let touchStartPos = null; // Store touch start position for touchend
 
 // Settings
 let showCurve = true;
@@ -120,6 +121,7 @@ canvas.addEventListener("contextmenu", (e) => {
 canvas.addEventListener("touchstart", (e) => {
     e.preventDefault();
     const { x, y } = getCanvasPosFromEvent(e);
+    touchStartPos = { x, y }; // Save touch start position
     selectedPoint = getPointAt(x, y);
     if (selectedPoint !== null) isDragging = true;
 }, { passive: false });
@@ -128,6 +130,7 @@ canvas.addEventListener("touchmove", (e) => {
     e.preventDefault();
     if (isDragging && selectedPoint !== null) {
         const { x, y } = getCanvasPosFromEvent(e);
+        touchStartPos = { x, y }; // Update position during drag
         points[selectedPoint].x = x;
         points[selectedPoint].y = y;
         rebuildPreviewPathPreserveProgress();
@@ -137,8 +140,9 @@ canvas.addEventListener("touchmove", (e) => {
 
 canvas.addEventListener("touchend", (e) => {
     e.preventDefault();
-    if (!isDragging) {
-        const { x, y } = getCanvasPosFromEvent(e);
+    if (!isDragging && touchStartPos) {
+        // Use saved touch position since e.touches is empty on touchend
+        const { x, y } = touchStartPos;
         const idx = getPointAt(x, y);
         if (deleteMode && idx !== null) {
             points.splice(idx, 1);
@@ -154,6 +158,7 @@ canvas.addEventListener("touchend", (e) => {
     }
     isDragging = false;
     selectedPoint = null;
+    touchStartPos = null;
 }, { passive: false });
 }
 
