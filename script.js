@@ -1077,13 +1077,20 @@ function generateOrientedGCodeFromPoints() {
 }
 
 function generateOrientedGCodePreview() {
-    // Fill both: left (base) and right (oriented) for side-by-side compare
     const left = document.getElementById('gcodeOutput');
     const right = document.getElementById('gcodeOutputOriented');
-    const baseGcode = generateGCodeString();
-    const orientedGcode = generateOrientedGCodeString();
     
-    if (left) left.value = baseGcode;
+    // Check if base G-code already exists
+    let baseGcode = left?.value || '';
+    
+    // Only generate base G-code if it doesn't exist
+    if (!baseGcode.trim()) {
+        baseGcode = generateGCodeString();
+        if (left) left.value = baseGcode;
+    }
+    
+    // Generate oriented G-code from existing base
+    const orientedGcode = generateOrientedGCodeString();
     if (right) right.value = orientedGcode;
     
     // Build preview from the oriented G-code
