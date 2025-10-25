@@ -746,14 +746,20 @@ function drawPreviewOverlay() {
             }
         }
 
+        // Label positioning: place labels to the side to avoid overlapping with arrow
+        const labelOffsetX = isMobile ? 20 : 15;
+        const labelOffsetY = isMobile ? 5 : 3;
+        
         previewCtx.fillStyle = '#2980b9';
         previewCtx.font = isMobile ? '12px Arial' : '10px Arial';
-        previewCtx.textAlign = 'center';
-        previewCtx.textBaseline = 'bottom';
-        previewCtx.fillText('Origin', originX, originY - (isMobile ? 16 : 12));
+        previewCtx.textAlign = 'left';
+        previewCtx.textBaseline = 'middle';
+        previewCtx.fillText('Origin', originX + labelOffsetX, originY + labelOffsetY);
 
         previewCtx.fillStyle = '#145a32';
-        previewCtx.fillText('Tip', tipX, tipY - (isMobile ? 16 : 12));
+        previewCtx.textAlign = 'left';
+        previewCtx.textBaseline = 'middle';
+        previewCtx.fillText('Tip', tipX + labelOffsetX, tipY + labelOffsetY);
     }
 
     previewCtx.restore();
