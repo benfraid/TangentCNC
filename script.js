@@ -1,7 +1,4 @@
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const previewCanvas = document.getElementById("previewCanvas");
-const previewCtx = previewCanvas.getContext("2d");
+let canvas, ctx, previewCanvas, previewCtx;
 
 let points = [];
 let selectedPoint = null;
@@ -45,6 +42,7 @@ const preview = {
 // ============================================
 
 function getCanvasPosFromEvent(e) {
+    if (!canvas) return { x: 0, y: 0 }; // Return default if canvas not initialized
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
@@ -62,11 +60,15 @@ function getCanvasPosFromEvent(e) {
     };
 }
 
-canvas.addEventListener("mousedown", (e) => {
-    const { x, y } = getCanvasPosFromEvent(e);
-    selectedPoint = getPointAt(x, y);
-    isDragging = selectedPoint !== null;
-});
+// Event listeners will be set up after DOM is loaded
+function setupCanvasEventListeners() {
+    if (!canvas) return;
+    
+    canvas.addEventListener("mousedown", (e) => {
+        const { x, y } = getCanvasPosFromEvent(e);
+        selectedPoint = getPointAt(x, y);
+        isDragging = selectedPoint !== null;
+    });
 
 canvas.addEventListener("mousemove", (e) => {
     if (isDragging && selectedPoint !== null) {
@@ -153,6 +155,7 @@ canvas.addEventListener("touchend", (e) => {
     isDragging = false;
     selectedPoint = null;
 }, { passive: false });
+}
 
 
 // ============================================
@@ -239,6 +242,8 @@ function drawCurve() {
 // ============================================
 
 function draw() {
+    if (!canvas || !ctx) return; // Skip if canvas not initialized
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // Draw grid (optional)
@@ -1268,6 +1273,13 @@ function parseGCode(text) {
 // Initialize on page load
 window.addEventListener('DOMContentLoaded', function() {
     // Ensure editor is hidden initially
+    // Initialize canvas elements
+    canvas = document.getElementById('canvas');
+    ctx = canvas ? canvas.getContext('2d') : null;
+    previewCanvas = document.getElementById('previewCanvas');
+    previewCtx = previewCanvas ? previewCanvas.getContext('2d') : null;
+    
+    // Ensure editor is hidden initially
     const editorContainer = document.getElementById('editorCanvasContainer');
     const drawModePanel = document.getElementById('drawModePanel');
     if (editorContainer) {
@@ -1275,5 +1287,18 @@ window.addEventListener('DOMContentLoaded', function() {
     }
     if (drawModePanel) {
         drawModePanel.style.display = 'none';
+    }
+    
+    // Set up event listeners for canvas
+    setupCanvasEventListeners();
+    
+    // Initial draw for editor canvas
+    if (canvas && ctx) {
+        draw();
+    }
+    
+    // Initial draw for preview canvas
+    if (previewCanvas && previewCtx) {
+        drawPreview();
     }
 });
