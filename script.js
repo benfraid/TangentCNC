@@ -1274,8 +1274,10 @@ function parseGCode(text) {
         if (xMatch) lastX = parseFloat(xMatch[1]);
         if (yMatch) lastY = parseFloat(yMatch[1]);
         if (lastX !== null && lastY !== null) {
-            // Flip Y axis when importing: G-code Y (up positive) to canvas Y (down positive)
-            out.push({ x: lastX, y: -lastY });
+            // Convert G-code units back to canvas pixels and flip Y axis
+            // G-code uses real units, canvas uses pixels: canvas = real / scaleFactor
+            const sf = Number(machineSettings.scaleFactor) || 1;
+            out.push({ x: lastX / sf, y: -lastY / sf });
         }
     }
     return out;
