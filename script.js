@@ -120,10 +120,13 @@ canvas.addEventListener("contextmenu", (e) => {
 // Touch support
 canvas.addEventListener("touchstart", (e) => {
     e.preventDefault();
+    console.log('touchstart event', e.touches.length);
     const { x, y } = getCanvasPosFromEvent(e);
+    console.log('touchstart pos:', x, y);
     touchStartPos = { x, y }; // Save touch start position
     selectedPoint = getPointAt(x, y);
     if (selectedPoint !== null) isDragging = true;
+    console.log('selectedPoint:', selectedPoint, 'isDragging:', isDragging);
 }, { passive: false });
 
 canvas.addEventListener("touchmove", (e) => {
@@ -140,16 +143,19 @@ canvas.addEventListener("touchmove", (e) => {
 
 canvas.addEventListener("touchend", (e) => {
     e.preventDefault();
+    console.log('touchend: isDragging=', isDragging, 'touchStartPos=', touchStartPos);
     if (!isDragging && touchStartPos) {
         // Use saved touch position since e.touches is empty on touchend
         const { x, y } = touchStartPos;
         const idx = getPointAt(x, y);
+        console.log('touchend: adding point at', x, y, 'idx=', idx);
         if (deleteMode && idx !== null) {
             points.splice(idx, 1);
             rebuildPreviewPathPreserveProgress();
             draw();
             updatePointCount();
         } else if (idx === null) {
+            console.log('Adding new point');
             points.push({ x, y });
             rebuildPreviewPathPreserveProgress();
             draw();
