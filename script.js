@@ -746,20 +746,22 @@ function drawPreviewOverlay() {
             }
         }
 
-        // Label positioning: place labels to the side to avoid overlapping with arrow
+        // Label positioning: place labels on opposite sides to avoid overlap
         const labelOffsetX = isMobile ? 20 : 15;
         const labelOffsetY = isMobile ? 5 : 3;
         
+        // Origin label: place to the left-bottom of the marker
         previewCtx.fillStyle = '#2980b9';
         previewCtx.font = isMobile ? '12px Arial' : '10px Arial';
-        previewCtx.textAlign = 'left';
-        previewCtx.textBaseline = 'middle';
-        previewCtx.fillText('Origin', originX + labelOffsetX, originY + labelOffsetY);
+        previewCtx.textAlign = 'right';
+        previewCtx.textBaseline = 'top';
+        previewCtx.fillText('Origin', originX - labelOffsetX, originY + labelOffsetY);
 
+        // Tip label: place to the right-top of the marker
         previewCtx.fillStyle = '#145a32';
         previewCtx.textAlign = 'left';
-        previewCtx.textBaseline = 'middle';
-        previewCtx.fillText('Tip', tipX + labelOffsetX, tipY + labelOffsetY);
+        previewCtx.textBaseline = 'bottom';
+        previewCtx.fillText('Tip', tipX + labelOffsetX, tipY - labelOffsetY);
     }
 
     previewCtx.restore();
