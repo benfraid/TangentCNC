@@ -21,6 +21,9 @@ const machineSettings = {
     angleMode: '-180-180', // '0-360' or '-180-180'
     angleOffset: 0, // C-axis offset in degrees
     shortestPath: true, // Use shortest rotation path
+    toolOffsetX: 0, // Tool tip X offset from origin
+    toolOffsetY: 20, // Tool tip Y offset from origin (default 20mm)
+    toolRotationOffset: 0, // Tool rotation offset in degrees
 };
 
 // Preview state
@@ -364,6 +367,9 @@ function updateSettings() {
     machineSettings.angleMode = document.getElementById('angleMode')?.value || '-180-180';
     machineSettings.angleOffset = parseFloat(document.getElementById('angleOffset')?.value) || 0;
     machineSettings.shortestPath = document.getElementById('shortestPath')?.checked ?? true;
+    machineSettings.toolOffsetX = parseFloat(document.getElementById('toolOffsetX')?.value) || 0;
+    machineSettings.toolOffsetY = parseFloat(document.getElementById('toolOffsetY')?.value) || 20;
+    machineSettings.toolRotationOffset = parseFloat(document.getElementById('toolRotationOffset')?.value) || 0;
     
     // Update unit labels
     const unitSuffix = machineSettings.unit === 'inch' ? 'inch' : 'mm';
@@ -377,6 +383,9 @@ function updateSettings() {
             el.textContent = unitSuffix;
         }
     });
+    
+    // Redraw to update tool visualization
+    draw();
 }
 
 function setDeleteMode(checked) {
@@ -567,59 +576,94 @@ function drawPreviewOverlay() {
     const markerRadius = isMobile ? 10 : 6;
     const markerStrokeWidth = isMobile ? 3 : 2;
 
-    // Tool marker
     ctx.save();
+
+    // Calculate tool orientation angle
+    let toolAngle = 0; // in degrees
+    if (preview.mode === 'oriented' && pt.angle !== null) {
+        toolAngle = pt.angle + machineSettings.toolRotationOffset;
+    } else if (preview.mode === 'oriented') {
+        // Fallback to tangent angle
+        toolAngle = Math.atan2(-pt.ny, pt.nx) * 180 / Math.PI + machineSettings.toolRotationOffset;
+    } else {
+        // Base mode: always pointing up (90 degrees)
+        toolAngle = 90 + machineSettings.toolRotationOffset;
+    }
+    
+    const angleRad = toolAngle * Math.PI / 180;
+    
+    // Calculate tool tip position (offset from origin)
+    const offsetPixelsX = machineSettings.toolOffsetX / machineSettings.scaleFactor;
+    const offsetPixelsY = machineSettings.toolOffsetY / machineSettings.scaleFactor;
+    
+    // Rotate offset by tool angle
+    const rotatedOffsetX = offsetPixelsX * Math.cos(angleRad) - offsetPixelsY * Math.sin(angleRad);
+    const rotatedOffsetY = offsetPixelsX * Math.sin(angleRad) + offsetPixelsY * Math.cos(angleRad);
+    
+    // Tool tip position (this is where the path point is)
+    const tipX = pt.x;
+    const tipY = pt.y;
+    
+    // Tool origin position (offset backwards from tip)
+    const originX = tipX - rotatedOffsetX;
+    const originY = tipY - rotatedOffsetY;
+
+    // Draw tool origin (spindle center)
+    ctx.fillStyle = '#3498db';
+    ctx.strokeStyle = '#2980b9';
+    ctx.lineWidth = markerStrokeWidth;
+    ctx.beginPath();
+    ctx.arc(originX, originY, markerRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Draw line from origin to tip
+    ctx.strokeStyle = '#95a5a6';
+    ctx.lineWidth = isMobile ? 2 : 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(originX, originY);
+    ctx.lineTo(tipX, tipY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw tool tip marker (cutting point)
     ctx.fillStyle = '#2ecc71';
     ctx.strokeStyle = '#145a32';
     ctx.lineWidth = markerStrokeWidth;
     ctx.beginPath();
-    ctx.arc(pt.x, pt.y, markerRadius, 0, Math.PI * 2);
+    ctx.arc(tipX, tipY, markerRadius, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
     if (preview.showDirection) {
-        // Direction arrow based on preview mode
-        let dirX, dirY;
-        
-        if (preview.mode === 'oriented' && pt.angle !== null) {
-            // Use C-axis angle from G-code (convert from degrees to radians)
-            // Canvas Y is down, but our angle is standard (0=+X, CCW+, Y up)
-            const angleRad = pt.angle * Math.PI / 180;
-            dirX = Math.cos(angleRad);
-            dirY = -Math.sin(angleRad); // Negate because canvas Y is down
-        } else if (preview.mode === 'oriented') {
-            // Fallback to tangent if no C-axis data
-            dirX = pt.nx;
-            dirY = pt.ny;
-        } else {
-            // Base mode: always up (negative Y axis)
-            dirX = 0;
-            dirY = -1;
-        }
+        // Direction arrow from origin
+        const dirX = Math.cos(angleRad);
+        const dirY = -Math.sin(angleRad); // Negate because canvas Y is down
         
         const L = isMobile ? 36 : 24;  // Longer arrow on mobile
-        const ax = pt.x + dirX * L;
-        const ay = pt.y + dirY * L;
+        const ax = originX + dirX * L;
+        const ay = originY + dirY * L;
        
-           // Color-code arrow based on angle change (for oriented mode)
-           let arrowColor = preview.mode === 'oriented' ? '#ff6600' : '#27ae60';
-           if (preview.mode === 'oriented' && pt.angleDiff !== undefined) {
-               const absChange = Math.abs(pt.angleDiff);
-               if (absChange > 90) {
-                   arrowColor = '#e74c3c'; // Red for large changes (>90°)
-               } else if (absChange > 45) {
-                   arrowColor = '#f39c12'; // Orange for medium changes (45-90°)
-               } else if (absChange > 15) {
-                   arrowColor = '#f1c40f'; // Yellow for small changes (15-45°)
-               } else {
-                   arrowColor = '#2ecc71'; // Green for minimal changes (<15°)
-               }
-           }
+        // Color-code arrow based on angle change (for oriented mode)
+        let arrowColor = preview.mode === 'oriented' ? '#ff6600' : '#27ae60';
+        if (preview.mode === 'oriented' && pt.angleDiff !== undefined) {
+            const absChange = Math.abs(pt.angleDiff);
+            if (absChange > 90) {
+                arrowColor = '#e74c3c'; // Red for large changes (>90°)
+            } else if (absChange > 45) {
+                arrowColor = '#f39c12'; // Orange for medium changes (45-90°)
+            } else if (absChange > 15) {
+                arrowColor = '#f1c40f'; // Yellow for small changes (15-45°)
+            } else {
+                arrowColor = '#2ecc71'; // Green for minimal changes (<15°)
+            }
+        }
        
-           ctx.strokeStyle = arrowColor;
+        ctx.strokeStyle = arrowColor;
         ctx.lineWidth = isMobile ? 3 : 2;  // Thicker arrow on mobile
         ctx.beginPath();
-        ctx.moveTo(pt.x, pt.y);
+        ctx.moveTo(originX, originY);
         ctx.lineTo(ax, ay);
         ctx.stroke();
 
@@ -634,25 +678,35 @@ function drawPreviewOverlay() {
         ctx.lineTo(ax - right.x * h, ay - right.y * h);
         ctx.stroke();
        
-           // Display C-axis angle text (for oriented mode)
-           if (preview.mode === 'oriented' && pt.angle !== null) {
-               ctx.fillStyle = '#000000';
-               ctx.font = isMobile ? 'bold 16px Arial' : 'bold 12px Arial';  // Larger text on mobile
-               ctx.textAlign = 'left';
-               ctx.textBaseline = 'top';
-               const angleText = `C: ${formatNum(pt.angle)}°`;
-               const changeText = pt.angleDiff !== undefined ? ` (Δ${formatNum(pt.angleDiff)}°)` : '';
-               const textOffset = isMobile ? 16 : 12;
-               ctx.fillText(angleText + changeText, pt.x + textOffset, pt.y + textOffset);
+        // Display C-axis angle text (for oriented mode)
+        if (preview.mode === 'oriented' && pt.angle !== null) {
+            ctx.fillStyle = '#000000';
+            ctx.font = isMobile ? 'bold 16px Arial' : 'bold 12px Arial';  // Larger text on mobile
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            const angleText = `C: ${formatNum(pt.angle)}°`;
+            const changeText = pt.angleDiff !== undefined ? ` (Δ${formatNum(pt.angleDiff)}°)` : '';
+            const textOffset = isMobile ? 16 : 12;
+            ctx.fillText(angleText + changeText, originX + textOffset, originY + textOffset);
            
-               // Warning indicator for large angle changes
-               if (pt.angleDiff !== undefined && Math.abs(pt.angleDiff) > 90) {
-                   ctx.fillStyle = '#e74c3c';
-                   ctx.font = isMobile ? 'bold 14px Arial' : 'bold 10px Arial';  // Larger warning on mobile
-                   const warningOffset = isMobile ? 32 : 26;
-                   ctx.fillText('⚠ Large rotation', pt.x + textOffset, pt.y + warningOffset);
-               }
-           }
+            // Warning indicator for large angle changes
+            if (pt.angleDiff !== undefined && Math.abs(pt.angleDiff) > 90) {
+                ctx.fillStyle = '#e74c3c';
+                ctx.font = isMobile ? 'bold 14px Arial' : 'bold 10px Arial';  // Larger warning on mobile
+                const warningOffset = isMobile ? 32 : 26;
+                ctx.fillText('⚠ Large rotation', originX + textOffset, originY + warningOffset);
+            }
+        }
+        
+        // Draw labels
+        ctx.fillStyle = '#2980b9';
+        ctx.font = isMobile ? '12px Arial' : '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('Origin', originX, originY - (isMobile ? 16 : 12));
+        
+        ctx.fillStyle = '#145a32';
+        ctx.fillText('Tip', tipX, tipY - (isMobile ? 16 : 12));
     }
 
     ctx.restore();
