@@ -319,6 +319,16 @@ function drawGrid() {
 // UI Control Functions
 // ============================================
 
+function toggleDrawMode() {
+    const panel = document.getElementById('drawModePanel');
+    const btn = document.getElementById('drawModeBtn');
+    if (panel && btn) {
+        const isHidden = panel.style.display === 'none' || !panel.style.display;
+        panel.style.display = isHidden ? 'block' : 'none';
+        btn.textContent = isHidden ? '✏️ Hide Drawing Tools' : '✏️ Draw Path Manually';
+    }
+}
+
 function clearAll() {
     points = [];
     rebuildPreviewPathPreserveProgress();

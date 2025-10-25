@@ -10,45 +10,92 @@
     <div class="container">
         <header>
             <h1>🔧 TangentCNC</h1>
-            <p class="subtitle">Web-based CNC Toolpath Editor</p>
+            <p class="subtitle">C-axis Orientation Tool for CNC Toolpaths</p>
         </header>
 
-        <div class="controls">
-            <details class="settings-panel">
-                <summary>⚙️ Machining Parameters</summary>
-                <div class="settings-grid">
-                    <div class="setting-row">
-                        <label>Unit:</label>
-                        <select id="unitSelect" onchange="updateSettings()">
-                            <option value="mm">Millimeters (mm)</option>
-                            <option value="inch">Inches (inch)</option>
-                        </select>
+        <!-- Workflow Step 1: Input -->
+        <section class="workflow-section">
+            <div class="section-header">
+                <span class="step-number">1</span>
+                <h2>Input Toolpath</h2>
+            </div>
+            <div class="section-content">
+                <div class="input-methods">
+                    <button onclick="document.getElementById('gcodeFileInput').click()" class="btn btn-primary btn-large">
+                        📤 Import G-code File
+                    </button>
+                    <input id="gcodeFileInput" type="file" accept=".nc,.gcode,.txt" style="display:none">
+                    <span class="method-separator">or</span>
+                    <button onclick="toggleDrawMode()" class="btn btn-secondary btn-large" id="drawModeBtn">
+                        ✏️ Draw Path Manually
+                    </button>
+                </div>
+                <div id="drawModePanel" class="draw-mode-panel" style="display:none;">
+                    <div class="editor-controls-inline">
+                        <button onclick="clearAll()" class="btn btn-danger btn-sm">🗑️ Clear</button>
+                        <label>
+                            <input type="checkbox" id="deleteMode" onchange="setDeleteMode(this.checked)">
+                            Delete Mode
+                        </label>
+                        <label>
+                            Resolution:
+                            <input type="range" id="resolutionSlider" min="10" max="200" value="100" 
+                                   oninput="updateResolution(this.value)" style="width: 100px;">
+                            <span id="resolutionValue">100</span>
+                        </label>
+                        <span class="info-text">
+                            <strong id="pointCount">0</strong> points | Click: Add/Move | Right-click: Delete
+                        </span>
                     </div>
-                    <div class="setting-row">
-                        <label>Scale Factor:</label>
-                        <input type="number" id="scaleFactor" value="0.1" step="0.01" min="0.001" onchange="updateSettings()">
-                        <span class="hint">Canvas pixels → real units</span>
-                    </div>
-                    <div class="setting-row">
-                        <label>Safe Height (Z):</label>
-                        <input type="number" id="safeHeight" value="5.0" step="0.5" onchange="updateSettings()">
-                        <span class="unit-label" id="safeHeightUnit">mm</span>
-                    </div>
-                    <div class="setting-row">
-                        <label>Cut Depth (Z):</label>
-                        <input type="number" id="cutDepth" value="-1.0" step="0.1" onchange="updateSettings()">
-                        <span class="unit-label" id="cutDepthUnit">mm</span>
-                    </div>
-                    <div class="setting-row">
-                        <label>Feed Rate (F):</label>
-                        <input type="number" id="feedRate" value="300" step="10" min="1" onchange="updateSettings()">
-                        <span class="unit-label" id="feedRateUnit">mm/min</span>
-                    </div>
-                    <div class="setting-row">
-                        <label>Rapid Rate (G0):</label>
-                        <input type="number" id="rapidRate" value="1000" step="50" min="1" onchange="updateSettings()">
-                        <span class="unit-label" id="rapidRateUnit">mm/min</span>
-                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Canvas -->
+        <canvas id="canvas" width="900" height="600"></canvas>
+
+        <!-- Workflow Step 2: Configure -->
+        <section class="workflow-section">
+            <div class="section-header">
+                <span class="step-number">2</span>
+                <h2>Configure Parameters</h2>
+            </div>
+            <div class="section-content">
+                <details class="settings-panel" open>
+                    <summary>⚙️ Machining & C-axis Settings</summary>
+                    <div class="settings-grid">
+                        <div class="setting-row">
+                            <label>Unit:</label>
+                            <select id="unitSelect" onchange="updateSettings()">
+                                <option value="mm">Millimeters (mm)</option>
+                                <option value="inch">Inches (inch)</option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <label>Scale Factor:</label>
+                            <input type="number" id="scaleFactor" value="0.1" step="0.01" min="0.001" onchange="updateSettings()">
+                            <span class="hint">Canvas pixels → real units</span>
+                        </div>
+                        <div class="setting-row">
+                            <label>Safe Height (Z):</label>
+                            <input type="number" id="safeHeight" value="5.0" step="0.5" onchange="updateSettings()">
+                            <span class="unit-label" id="safeHeightUnit">mm</span>
+                        </div>
+                        <div class="setting-row">
+                            <label>Cut Depth (Z):</label>
+                            <input type="number" id="cutDepth" value="-1.0" step="0.1" onchange="updateSettings()">
+                            <span class="unit-label" id="cutDepthUnit">mm</span>
+                        </div>
+                        <div class="setting-row">
+                            <label>Feed Rate (F):</label>
+                            <input type="number" id="feedRate" value="300" step="10" min="1" onchange="updateSettings()">
+                            <span class="unit-label" id="feedRateUnit">mm/min</span>
+                        </div>
+                        <div class="setting-row">
+                            <label>Rapid Rate (G0):</label>
+                            <input type="number" id="rapidRate" value="1000" step="50" min="1" onchange="updateSettings()">
+                            <span class="unit-label" id="rapidRateUnit">mm/min</span>
+                        </div>
                         <div class="setting-row">
                             <label>C-axis Angle Mode:</label>
                             <select id="angleMode" onchange="updateSettings()">
@@ -66,93 +113,100 @@
                             <input type="checkbox" id="shortestPath" checked onchange="updateSettings()">
                             <span class="hint">Minimize rotation</span>
                         </div>
-                </div>
-            </details>
-            
-            <div class="control-group">
-                <button onclick="generateGCodePreview()" class="btn btn-primary">⚙️ Generate G-code</button>
-                <button onclick="downloadGCode()" class="btn btn-success">⬇️ Download .nc</button>
-                <button onclick="document.getElementById('gcodeFileInput').click()" class="btn btn-secondary">📤 Import G-code</button>
-                <input id="gcodeFileInput" type="file" accept=".nc,.gcode,.txt" style="display:none">
-                <button onclick="generateOrientedGCodePreview()" class="btn btn-secondary">🧭 Generate Oriented G-code</button>
-                <button onclick="downloadOrientedGCode()" class="btn btn-success">⬇️ Download Oriented .nc</button>
-            </div>
-            
-            <details id="gcodePreviewPanel">
-                <summary>G-code Preview (Before / After)</summary>
-                <div class="gcode-compare">
-                    <div class="gcode-col">
-                        <div class="gcode-col-header">Before (Base XY)</div>
-                        <textarea id="gcodeOutput" spellcheck="false" placeholder="Click 'Generate G-code' to preview..."></textarea>
                     </div>
-                    <div class="gcode-col">
-                        <div class="gcode-col-header">After (With Orientation C/ORI)</div>
-                        <textarea id="gcodeOutputOriented" spellcheck="false" placeholder="Click 'Generate Oriented G-code' to preview..."></textarea>
+                </details>
+            </div>
+        </section>
+
+        <!-- Workflow Step 3: Generate & Preview -->
+        <section class="workflow-section">
+            <div class="section-header">
+                <span class="step-number">3</span>
+                <h2>Generate & Preview</h2>
+            </div>
+            <div class="section-content">
+                <div class="generation-controls">
+                    <div class="gen-option">
+                        <h3>Base G-code (XYZ only)</h3>
+                        <button onclick="generateGCodePreview()" class="btn btn-primary">⚙️ Generate</button>
+                    </div>
+                    <div class="gen-option">
+                        <h3>Oriented G-code (XYZ + C-axis)</h3>
+                        <button onclick="generateOrientedGCodePreview()" class="btn btn-primary">🧭 Generate with Orientation</button>
                     </div>
                 </div>
-            </details>
-            
-            <div class="info">
-                <span>Points: <strong id="pointCount">0</strong></span>
-                <span class="separator">|</span>
-                <span>Left Click: Add/Move | Right Click: Delete</span>
-            </div>
-        </div>
-
-        <!-- Editor Controls (positioned close to canvas) -->
-        <div class="editor-controls">
-            <div class="control-group">
-                <button onclick="clearAll()" class="btn btn-danger">🗑️ Clear All</button>
-                <label>
-                    Curve Resolution:
-                    <input type="range" id="resolutionSlider" min="10" max="200" value="100" 
-                           oninput="updateResolution(this.value)">
-                    <span id="resolutionValue">100</span>
-                </label>
-                <label>
-                    <input type="checkbox" id="deleteMode" onchange="setDeleteMode(this.checked)">
-                    Delete Mode
-                </label>
-            </div>
-        </div>
-
-        <canvas id="canvas" width="900" height="600"></canvas>
-
-        <!-- Playback and progress placed close to the canvas for all devices -->
-        <div class="playback-panel">
-            <div class="control-group playback">
-                <button id="btnPlayPause" onclick="togglePlay()" class="btn btn-primary">▶ Play</button>
-                <button onclick="resetPreview()" class="btn btn-secondary">⏮ Reset</button>
-                <div class="preview-mode-inline">
-                    <span class="inline-label">Preview Mode:</span>
-                    <label>
-                        <input type="radio" name="previewMode" value="base" checked onchange="setPreviewMode('base')">
-                        Base
-                    </label>
-                    <label>
-                        <input type="radio" name="previewMode" value="oriented" onchange="setPreviewMode('oriented')">
-                        Oriented
-                    </label>
+                
+                <!-- Preview Controls -->
+                <div class="preview-section">
+                    <h3>Preview Animation</h3>
+                    <div class="playback-controls">
+                        <button id="btnPlayPause" onclick="togglePlay()" class="btn btn-primary">▶ Play</button>
+                        <button onclick="resetPreview()" class="btn btn-secondary">⏮ Reset</button>
+                        <div class="preview-mode-inline">
+                            <span class="inline-label">Mode:</span>
+                            <label>
+                                <input type="radio" name="previewMode" value="base" checked onchange="setPreviewMode('base')">
+                                Base
+                            </label>
+                            <label>
+                                <input type="radio" name="previewMode" value="oriented" onchange="setPreviewMode('oriented')">
+                                Oriented
+                            </label>
+                        </div>
+                        <label>
+                            <input type="checkbox" id="showDirection" checked onchange="toggleDirection(this.checked)">
+                            Show direction
+                        </label>
+                        <label>
+                            Speed:
+                            <input type="range" id="previewSpeed" min="10" max="800" value="200" 
+                                   oninput="updatePreviewSpeed(this.value)" style="width: 120px;">
+                            <span id="previewSpeedValue">200 px/s</span>
+                        </label>
+                    </div>
+                    <div class="progress-control">
+                        <label style="flex:1">
+                            Progress:
+                            <input type="range" id="previewProgress" min="0" max="100" value="0" step="0.1" style="width: 100%">
+                            <span id="previewProgressValue">0%</span>
+                        </label>
+                    </div>
                 </div>
-                <label>
-                    Speed:
-                    <input type="range" id="previewSpeed" min="10" max="800" value="200" 
-                           oninput="updatePreviewSpeed(this.value)">
-                    <span id="previewSpeedValue">200 px/s</span>
-                </label>
-                <label>
-                    Show direction
-                    <input type="checkbox" id="showDirection" checked onchange="toggleDirection(this.checked)">
-                </label>
+
+                <!-- G-code Comparison -->
+                <details id="gcodePreviewPanel">
+                    <summary>📄 View G-code Comparison</summary>
+                    <div class="gcode-compare">
+                        <div class="gcode-col">
+                            <div class="gcode-col-header">Base (XYZ)</div>
+                            <textarea id="gcodeOutput" spellcheck="false" placeholder="Generate base G-code..."></textarea>
+                        </div>
+                        <div class="gcode-col">
+                            <div class="gcode-col-header">Oriented (XYZ + C)</div>
+                            <textarea id="gcodeOutputOriented" spellcheck="false" placeholder="Generate oriented G-code..."></textarea>
+                        </div>
+                    </div>
+                </details>
             </div>
-            <div class="control-group">
-                <label style="flex:1">
-                    Progress:
-                    <input type="range" id="previewProgress" min="0" max="100" value="0" step="0.1" style="width: 60%">
-                    <span id="previewProgressValue">0%</span>
-                </label>
+        </section>
+
+        <!-- Workflow Step 4: Download -->
+        <section class="workflow-section">
+            <div class="section-header">
+                <span class="step-number">4</span>
+                <h2>Download Output</h2>
             </div>
-        </div>
+            <div class="section-content">
+                <div class="download-options">
+                    <button onclick="downloadGCode()" class="btn btn-success btn-large">
+                        ⬇️ Download Base G-code (.nc)
+                    </button>
+                    <button onclick="downloadOrientedGCode()" class="btn btn-success btn-large">
+                        ⬇️ Download Oriented G-code (.nc)
+                    </button>
+                </div>
+            </div>
+        </section>
 
         <footer class="app-footer">
             <p>TangentCNC v1.0.0 | <a href="https://github.com/benfraid/TangentCNC" target="_blank">GitHub</a></p>
