@@ -126,6 +126,17 @@ h1 {
 }
 
 /* Canvas */
+.canvas-container {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.canvas-container h3 {
+    font-size: 1.1em;
+    color: #555;
+    margin-bottom: 15px;
+}
+
 canvas {
     border: 2px solid #ddd;
     border-radius: 8px;
@@ -134,43 +145,21 @@ canvas {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     width: 100%;
     height: auto;
+    display: block;
+    margin: 0 auto;
 }
 
 canvas:active {
     cursor: grabbing;
 }
 
-/* Preview Layout - 2 Column */
-.preview-layout {
-    display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 25px;
-    align-items: start;
-}
-
-.canvas-column {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-}
-
-.canvas-column canvas {
-    margin: 0;
-    max-width: 100%;
-}
-
-.controls-column {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
 /* Generation Controls */
 .generation-controls {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 15px;
     margin-bottom: 25px;
+    justify-content: center;
 }
 
 .gen-option {
@@ -178,6 +167,9 @@ canvas:active {
     background: #f8f9fa;
     border-radius: 8px;
     border: 1px solid #dee2e6;
+    flex: 1;
+    min-width: 250px;
+    max-width: 400px;
 }
 
 .gen-option h3 {

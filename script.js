@@ -1,5 +1,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+const previewCanvas = document.getElementById("previewCanvas");
+const previewCtx = previewCanvas.getContext("2d");
 
 let points = [];
 let selectedPoint = null;
@@ -22,8 +24,7 @@ const machineSettings = {
     angleOffset: 0, // C-axis offset in degrees
     shortestPath: true, // Use shortest rotation path
     toolOffsetX: 0, // Tool tip X offset from origin
-    toolOffsetY: 20, // Tool tip Y offset from origin (default 20mm)
-    toolRotationOffset: 0, // Tool rotation offset in degrees
+    toolOffsetY: 0, // Tool tip Y offset from origin (default 0mm)
 };
 
 // Preview state
@@ -35,44 +36,41 @@ const preview = {
     currentDist: 0, // distance along path
     lastTs: null,
     showDirection: true,
-    mode: 'base', // 'base' (fixed up) or 'oriented' (A-axis tangent)
-    gcodeLoaded: false, // Flag to track if G-code has been generated
+    mode: 'base', // 'base' or 'oriented'
+    gcodeLoaded: false,
 };
 
 // ============================================
-// Event Listeners
+// Event Listeners (Editor Canvas)
 // ============================================
 
 function getCanvasPosFromEvent(e) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
+    let clientX, clientY;
     if (e.touches && e.touches.length > 0) {
-        const t = e.touches[0];
-        return { x: (t.clientX - rect.left) * scaleX, y: (t.clientY - rect.top) * scaleY };
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
     }
-    if (e.changedTouches && e.changedTouches.length > 0) {
-        const t = e.changedTouches[0];
-        return { x: (t.clientX - rect.left) * scaleX, y: (t.clientY - rect.top) * scaleY };
-    }
-    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+    return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY,
+    };
 }
 
 canvas.addEventListener("mousedown", (e) => {
     const { x, y } = getCanvasPosFromEvent(e);
-
-    // Check if clicking on existing point
     selectedPoint = getPointAt(x, y);
-    
-    if (selectedPoint !== null) {
-        isDragging = true;
-    }
+    isDragging = selectedPoint !== null;
 });
 
 canvas.addEventListener("mousemove", (e) => {
     if (isDragging && selectedPoint !== null) {
         const { x, y } = getCanvasPosFromEvent(e);
-        
         points[selectedPoint].x = x;
         points[selectedPoint].y = y;
         rebuildPreviewPathPreserveProgress();
@@ -88,8 +86,6 @@ canvas.addEventListener("mouseup", () => {
 canvas.addEventListener("click", (e) => {
     if (isDragging) return; // Ignore click if we were dragging
     const { x, y } = getCanvasPosFromEvent(e);
-
-    // Only add point if not clicking on existing one
     const idx = getPointAt(x, y);
     if (deleteMode && idx !== null) {
         points.splice(idx, 1);
@@ -109,7 +105,6 @@ canvas.addEventListener("click", (e) => {
 canvas.addEventListener("contextmenu", (e) => {
     e.preventDefault();
     const { x, y } = getCanvasPosFromEvent(e);
-    
     const pointIndex = getPointAt(x, y);
     if (pointIndex !== null) {
         points.splice(pointIndex, 1);
@@ -119,14 +114,12 @@ canvas.addEventListener("contextmenu", (e) => {
     }
 });
 
-// Touch support (mobile)
+// Touch support
 canvas.addEventListener("touchstart", (e) => {
     e.preventDefault();
     const { x, y } = getCanvasPosFromEvent(e);
     selectedPoint = getPointAt(x, y);
-    if (selectedPoint !== null) {
-        isDragging = true;
-    }
+    if (selectedPoint !== null) isDragging = true;
 }, { passive: false });
 
 canvas.addEventListener("touchmove", (e) => {
@@ -142,7 +135,6 @@ canvas.addEventListener("touchmove", (e) => {
 
 canvas.addEventListener("touchend", (e) => {
     e.preventDefault();
-    // Treat as a tap if we weren't dragging
     if (!isDragging) {
         const { x, y } = getCanvasPosFromEvent(e);
         const idx = getPointAt(x, y);
@@ -161,6 +153,7 @@ canvas.addEventListener("touchend", (e) => {
     isDragging = false;
     selectedPoint = null;
 }, { passive: false });
+
 
 // ============================================
 // Helper Functions
@@ -292,8 +285,7 @@ function draw() {
         ctx.fillText(index + 1, p.x + (isMobile ? 14 : 10), p.y - (isMobile ? 14 : 10));
     });
 
-    // Draw preview marker overlay
-    drawPreviewOverlay();
+    // Editor only: no preview overlay here anymore
 }
 
 function drawGrid() {
@@ -319,16 +311,66 @@ function drawGrid() {
 }
 
 // ============================================
+// Preview Drawing (separate canvas)
+// ============================================
+
+function drawPreviewGrid() {
+    const gridSize = 50;
+    previewCtx.strokeStyle = "#f0f0f0";
+    previewCtx.lineWidth = 1;
+    for (let x = 0; x < previewCanvas.width; x += gridSize) {
+        previewCtx.beginPath();
+        previewCtx.moveTo(x, 0);
+        previewCtx.lineTo(x, previewCanvas.height);
+        previewCtx.stroke();
+    }
+    for (let y = 0; y < previewCanvas.height; y += gridSize) {
+        previewCtx.beginPath();
+        previewCtx.moveTo(0, y);
+        previewCtx.lineTo(previewCanvas.width, y);
+        previewCtx.stroke();
+    }
+}
+
+function drawPreviewPath() {
+    if (preview.segments.length === 0) return;
+    previewCtx.strokeStyle = "#00aaff";
+    previewCtx.lineWidth = 2;
+    previewCtx.beginPath();
+    const first = preview.segments[0];
+    previewCtx.moveTo(first.x1, first.y1);
+    for (const seg of preview.segments) {
+        previewCtx.lineTo(seg.x2, seg.y2);
+    }
+    previewCtx.stroke();
+}
+
+function drawPreview() {
+    if (!previewCanvas || !previewCtx) return;
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    drawPreviewGrid();
+    drawPreviewPath();
+    drawPreviewOverlay();
+}
+
+// ============================================
 // UI Control Functions
 // ============================================
 
 function toggleDrawMode() {
     const panel = document.getElementById('drawModePanel');
     const btn = document.getElementById('drawModeBtn');
+    const editorContainer = document.getElementById('editorCanvasContainer');
+    console.log('toggleDrawMode called', { panel, btn, editorContainer });
     if (panel && btn) {
         const isHidden = panel.style.display === 'none' || !panel.style.display;
+        console.log('isHidden:', isHidden);
         panel.style.display = isHidden ? 'block' : 'none';
         btn.textContent = isHidden ? '✏️ Hide Drawing Tools' : '✏️ Draw Path Manually';
+        if (editorContainer) {
+            editorContainer.style.display = isHidden ? 'block' : 'none';
+            console.log('editorContainer.style.display set to:', editorContainer.style.display);
+        }
     }
 }
 
@@ -367,9 +409,14 @@ function updateSettings() {
     machineSettings.angleMode = document.getElementById('angleMode')?.value || '-180-180';
     machineSettings.angleOffset = parseFloat(document.getElementById('angleOffset')?.value) || 0;
     machineSettings.shortestPath = document.getElementById('shortestPath')?.checked ?? true;
-    machineSettings.toolOffsetX = parseFloat(document.getElementById('toolOffsetX')?.value) || 0;
-    machineSettings.toolOffsetY = parseFloat(document.getElementById('toolOffsetY')?.value) || 20;
-    machineSettings.toolRotationOffset = parseFloat(document.getElementById('toolRotationOffset')?.value) || 0;
+    {
+        const xEl = document.getElementById('toolOffsetX');
+        const yEl = document.getElementById('toolOffsetY');
+        const xVal = xEl ? parseFloat(xEl.value) : NaN;
+        const yVal = yEl ? parseFloat(yEl.value) : NaN;
+        if (Number.isFinite(xVal)) machineSettings.toolOffsetX = xVal;
+        if (Number.isFinite(yVal)) machineSettings.toolOffsetY = yVal; // allow 0
+    }
     
     // Update unit labels
     const unitSuffix = machineSettings.unit === 'inch' ? 'inch' : 'mm';
@@ -482,8 +529,9 @@ function buildPreviewFromGCode(gcodeText) {
         
         if (lastX !== null && lastY !== null) {
             // Convert scaled G-code coordinates back to canvas pixels
+            // Flip Y axis: G-code Y (up positive) to canvas Y (down positive)
             const canvasX = lastX / machineSettings.scaleFactor;
-            const canvasY = lastY / machineSettings.scaleFactor;
+            const canvasY = -lastY / machineSettings.scaleFactor;
             moves.push({ x: canvasX, y: canvasY, c: lastC });
         }
     }
@@ -571,145 +619,124 @@ function drawPreviewOverlay() {
     const pt = distToPoint(preview.currentDist);
     if (!pt) return;
 
-    // Larger preview elements on mobile
     const isMobile = window.innerWidth <= 768;
     const markerRadius = isMobile ? 10 : 6;
     const markerStrokeWidth = isMobile ? 3 : 2;
 
-    ctx.save();
+    previewCtx.save();
 
-    // Calculate tool orientation angle
-    let toolAngle = 0; // in degrees
+    let toolAngle = 0; // degrees
     if (preview.mode === 'oriented' && pt.angle !== null) {
-        toolAngle = pt.angle + machineSettings.toolRotationOffset;
+        toolAngle = pt.angle;
     } else if (preview.mode === 'oriented') {
-        // Fallback to tangent angle
-        toolAngle = Math.atan2(-pt.ny, pt.nx) * 180 / Math.PI + machineSettings.toolRotationOffset;
+        toolAngle = Math.atan2(-pt.ny, pt.nx) * 180 / Math.PI;
     } else {
-        // Base mode: always pointing up (90 degrees)
-        toolAngle = 90 + machineSettings.toolRotationOffset;
+        toolAngle = 90;
     }
-    
+
     const angleRad = toolAngle * Math.PI / 180;
-    
-    // Calculate tool tip position (offset from origin)
     const offsetPixelsX = machineSettings.toolOffsetX / machineSettings.scaleFactor;
     const offsetPixelsY = machineSettings.toolOffsetY / machineSettings.scaleFactor;
-    
-    // Rotate offset by tool angle
-    const rotatedOffsetX = offsetPixelsX * Math.cos(angleRad) - offsetPixelsY * Math.sin(angleRad);
-    const rotatedOffsetY = offsetPixelsX * Math.sin(angleRad) + offsetPixelsY * Math.cos(angleRad);
-    
-    // Tool tip position (this is where the path point is)
+    // Rotate offset in canvas coordinates (Y-down): flip Y component of rotation
+    const rotatedOffsetX = offsetPixelsX * Math.cos(angleRad) + offsetPixelsY * Math.sin(angleRad);
+    const rotatedOffsetY = offsetPixelsX * Math.sin(angleRad) - offsetPixelsY * Math.cos(angleRad);
+
+    // Tool tip is on the path (cutting point), C-axis origin is offset backwards
     const tipX = pt.x;
     const tipY = pt.y;
-    
-    // Tool origin position (offset backwards from tip)
     const originX = tipX - rotatedOffsetX;
     const originY = tipY - rotatedOffsetY;
 
-    // Draw tool origin (spindle center)
-    ctx.fillStyle = '#3498db';
-    ctx.strokeStyle = '#2980b9';
-    ctx.lineWidth = markerStrokeWidth;
-    ctx.beginPath();
-    ctx.arc(originX, originY, markerRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    
-    // Draw line from origin to tip
-    ctx.strokeStyle = '#95a5a6';
-    ctx.lineWidth = isMobile ? 2 : 1;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    ctx.moveTo(originX, originY);
-    ctx.lineTo(tipX, tipY);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    // Origin marker
+    previewCtx.fillStyle = '#3498db';
+    previewCtx.strokeStyle = '#2980b9';
+    previewCtx.lineWidth = markerStrokeWidth;
+    previewCtx.beginPath();
+    previewCtx.arc(originX, originY, markerRadius, 0, Math.PI * 2);
+    previewCtx.fill();
+    previewCtx.stroke();
 
-    // Draw tool tip marker (cutting point)
-    ctx.fillStyle = '#2ecc71';
-    ctx.strokeStyle = '#145a32';
-    ctx.lineWidth = markerStrokeWidth;
-    ctx.beginPath();
-    ctx.arc(tipX, tipY, markerRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    // Line
+    previewCtx.strokeStyle = '#95a5a6';
+    previewCtx.lineWidth = isMobile ? 2 : 1;
+    previewCtx.setLineDash([3, 3]);
+    previewCtx.beginPath();
+    previewCtx.moveTo(originX, originY);
+    previewCtx.lineTo(tipX, tipY);
+    previewCtx.stroke();
+    previewCtx.setLineDash([]);
+
+    // Tip marker
+    previewCtx.fillStyle = '#2ecc71';
+    previewCtx.strokeStyle = '#145a32';
+    previewCtx.lineWidth = markerStrokeWidth;
+    previewCtx.beginPath();
+    previewCtx.arc(tipX, tipY, markerRadius, 0, Math.PI * 2);
+    previewCtx.fill();
+    previewCtx.stroke();
 
     if (preview.showDirection) {
-        // Direction arrow from origin
         const dirX = Math.cos(angleRad);
-        const dirY = -Math.sin(angleRad); // Negate because canvas Y is down
-        
-        const L = isMobile ? 36 : 24;  // Longer arrow on mobile
-        const ax = originX + dirX * L;
-        const ay = originY + dirY * L;
-       
-        // Color-code arrow based on angle change (for oriented mode)
+        const dirY = Math.sin(angleRad); // angleRad is already in geometric coords (Y-up), sin gives canvas Y (Y-down)
+        const L = isMobile ? 36 : 24;
+        const ax = tipX + dirX * L;
+        const ay = tipY + dirY * L;
+
         let arrowColor = preview.mode === 'oriented' ? '#ff6600' : '#27ae60';
         if (preview.mode === 'oriented' && pt.angleDiff !== undefined) {
             const absChange = Math.abs(pt.angleDiff);
-            if (absChange > 90) {
-                arrowColor = '#e74c3c'; // Red for large changes (>90°)
-            } else if (absChange > 45) {
-                arrowColor = '#f39c12'; // Orange for medium changes (45-90°)
-            } else if (absChange > 15) {
-                arrowColor = '#f1c40f'; // Yellow for small changes (15-45°)
-            } else {
-                arrowColor = '#2ecc71'; // Green for minimal changes (<15°)
-            }
+            if (absChange > 90) arrowColor = '#e74c3c';
+            else if (absChange > 45) arrowColor = '#f39c12';
+            else if (absChange > 15) arrowColor = '#f1c40f';
+            else arrowColor = '#2ecc71';
         }
-       
-        ctx.strokeStyle = arrowColor;
-        ctx.lineWidth = isMobile ? 3 : 2;  // Thicker arrow on mobile
-        ctx.beginPath();
-        ctx.moveTo(originX, originY);
-        ctx.lineTo(ax, ay);
-        ctx.stroke();
 
-        // Arrow head based on the direction vector
+        previewCtx.strokeStyle = arrowColor;
+        previewCtx.lineWidth = isMobile ? 3 : 2;
+        previewCtx.beginPath();
+        previewCtx.moveTo(tipX, tipY);
+        previewCtx.lineTo(ax, ay);
+        previewCtx.stroke();
+
         const left = rotate(-Math.PI / 6, dirX, dirY);
         const right = rotate(Math.PI / 6, dirX, dirY);
-        const h = isMobile ? 15 : 10;  // Larger arrowhead on mobile
-        ctx.beginPath();
-        ctx.moveTo(ax, ay);
-        ctx.lineTo(ax - left.x * h, ay - left.y * h);
-        ctx.moveTo(ax, ay);
-        ctx.lineTo(ax - right.x * h, ay - right.y * h);
-        ctx.stroke();
-       
-        // Display C-axis angle text (for oriented mode)
+        const h = isMobile ? 15 : 10;
+        previewCtx.beginPath();
+        previewCtx.moveTo(ax, ay);
+        previewCtx.lineTo(ax - left.x * h, ay - left.y * h);
+        previewCtx.moveTo(ax, ay);
+        previewCtx.lineTo(ax - right.x * h, ay - right.y * h);
+        previewCtx.stroke();
+
         if (preview.mode === 'oriented' && pt.angle !== null) {
-            ctx.fillStyle = '#000000';
-            ctx.font = isMobile ? 'bold 16px Arial' : 'bold 12px Arial';  // Larger text on mobile
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
+            previewCtx.fillStyle = '#000000';
+            previewCtx.font = isMobile ? 'bold 16px Arial' : 'bold 12px Arial';
+            previewCtx.textAlign = 'left';
+            previewCtx.textBaseline = 'top';
             const angleText = `C: ${formatNum(pt.angle)}°`;
             const changeText = pt.angleDiff !== undefined ? ` (Δ${formatNum(pt.angleDiff)}°)` : '';
             const textOffset = isMobile ? 16 : 12;
-            ctx.fillText(angleText + changeText, originX + textOffset, originY + textOffset);
-           
-            // Warning indicator for large angle changes
+            previewCtx.fillText(angleText + changeText, tipX + textOffset, tipY + textOffset);
+
             if (pt.angleDiff !== undefined && Math.abs(pt.angleDiff) > 90) {
-                ctx.fillStyle = '#e74c3c';
-                ctx.font = isMobile ? 'bold 14px Arial' : 'bold 10px Arial';  // Larger warning on mobile
+                previewCtx.fillStyle = '#e74c3c';
+                previewCtx.font = isMobile ? 'bold 14px Arial' : 'bold 10px Arial';
                 const warningOffset = isMobile ? 32 : 26;
-                ctx.fillText('⚠ Large rotation', originX + textOffset, originY + warningOffset);
+                previewCtx.fillText('⚠ Large rotation', tipX + textOffset, tipY + warningOffset);
             }
         }
-        
-        // Draw labels
-        ctx.fillStyle = '#2980b9';
-        ctx.font = isMobile ? '12px Arial' : '10px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText('Origin', originX, originY - (isMobile ? 16 : 12));
-        
-        ctx.fillStyle = '#145a32';
-        ctx.fillText('Tip', tipX, tipY - (isMobile ? 16 : 12));
+
+        previewCtx.fillStyle = '#2980b9';
+        previewCtx.font = isMobile ? '12px Arial' : '10px Arial';
+        previewCtx.textAlign = 'center';
+        previewCtx.textBaseline = 'bottom';
+        previewCtx.fillText('Origin', originX, originY - (isMobile ? 16 : 12));
+
+        previewCtx.fillStyle = '#145a32';
+        previewCtx.fillText('Tip', tipX, tipY - (isMobile ? 16 : 12));
     }
 
-    ctx.restore();
+    previewCtx.restore();
 }
 
 function rotate(angle, x, y) {
@@ -727,12 +754,12 @@ function step(ts) {
     if (preview.currentDist >= preview.totalLength) {
         preview.currentDist = preview.totalLength;
         updateProgressUI();
-        draw();
+        drawPreview();
         togglePlay(false); // auto-stop at end
         return;
     }
     updateProgressUI();
-    draw();
+    drawPreview();
     requestAnimationFrame(step);
 }
 
@@ -749,7 +776,7 @@ function togglePlay(forceState) {
     }
     preview.playing = want;
     const btn = document.getElementById('btnPlayPause');
-    const label = want ? '⏸ Pause' : '▶ Play';
+    const label = want ? '⏸' : '▶';
     if (btn) btn.textContent = label;
     if (want) {
         preview.lastTs = null;
@@ -762,7 +789,7 @@ function resetPreview() {
     preview.lastTs = null;
     togglePlay(false);
     updateProgressUI();
-    draw();
+    drawPreview();
 }
 
 function updatePreviewSpeed(v) {
@@ -774,7 +801,7 @@ function updatePreviewSpeed(v) {
 
 function toggleDirection(checked) {
     preview.showDirection = !!checked;
-    draw();
+    drawPreview();
 }
 
 function setPreviewMode(mode) {
@@ -801,7 +828,7 @@ function setPreviewMode(mode) {
         }
     }
     
-    draw();
+    drawPreview();
 }
 
 function updateProgressUI() {
@@ -818,9 +845,9 @@ if (progressEl) {
     progressEl.addEventListener('input', (e) => {
         const v = parseFloat(e.target.value);
         e.target._scrubbing = true;
-        preview.currentDist = preview.totalLength * (v / 100);
-        clampPreviewDist();
-        draw();
+    preview.currentDist = preview.totalLength * (v / 100);
+    clampPreviewDist();
+    drawPreview();
         const label = document.getElementById('previewProgressValue');
         if (label) label.textContent = `${v.toFixed(1)}%`;
     });
@@ -853,7 +880,7 @@ function generateGCodeString() {
     if (poly.length > 0) {
         const p0 = poly[0];
         const x0 = p0.x * scaleFactor;
-        const y0 = p0.y * scaleFactor;
+        const y0 = -p0.y * scaleFactor; // Flip Y axis: canvas down = negative, CNC up = positive
         
         // Move to safe height, then to start position, then down to cut depth
         lines.push(`G0 Z${formatNum(safeHeight)} ; Safe height`);
@@ -863,7 +890,7 @@ function generateGCodeString() {
         for (let i = 1; i < poly.length; i++) {
             const p = poly[i];
             const x = p.x * scaleFactor;
-            const y = p.y * scaleFactor;
+            const y = -p.y * scaleFactor; // Flip Y axis
             lines.push(`G1 X${formatNum(x)} Y${formatNum(y)} F${formatNum(feedRate)}`);
         }
         
@@ -889,7 +916,7 @@ function generateGCodePreview() {
     const panel = document.getElementById('gcodePreviewPanel');
     if (panel && !panel.open) panel.open = true;
     
-    draw(); // Redraw to show preview marker at start
+    drawPreview(); // Redraw preview
 }
 
 // Oriented G-code generation (adds C axis and ORI comments)
@@ -1092,7 +1119,7 @@ function generateOrientedGCodeFromPoints() {
     if (poly.length > 0) {
         const p0 = poly[0];
         const x0 = p0.x * scaleFactor;
-        const y0 = p0.y * scaleFactor;
+        const y0 = -p0.y * scaleFactor; // Flip Y axis
         
         // First heading from first segment if exists, else 0
         let c0 = 0;
@@ -1118,7 +1145,7 @@ function generateOrientedGCodeFromPoints() {
                 const normalizedC = normalizeAngle(c, prevAngle);
                 prevAngle = normalizedC;
             const x = p.x * scaleFactor;
-            const y = p.y * scaleFactor;
+            const y = -p.y * scaleFactor; // Flip Y axis
                 lines.push(`G1 X${formatNum(x)} Y${formatNum(y)} C${formatNum(normalizedC)} F${formatNum(feedRate)} ; ORI=${formatNum(normalizedC)}deg`);
         }
         
@@ -1155,7 +1182,7 @@ function generateOrientedGCodePreview() {
     const panel = document.getElementById('gcodePreviewPanel');
     if (panel && !panel.open) panel.open = true;
     
-    draw(); // Redraw to show preview marker at start
+    drawPreview(); // Redraw preview
 }
 
 function downloadOrientedGCode() {
@@ -1234,7 +1261,8 @@ function parseGCode(text) {
         if (xMatch) lastX = parseFloat(xMatch[1]);
         if (yMatch) lastY = parseFloat(yMatch[1]);
         if (lastX !== null && lastY !== null) {
-            out.push({ x: lastX, y: lastY });
+            // Flip Y axis when importing: G-code Y (up positive) to canvas Y (down positive)
+            out.push({ x: lastX, y: -lastY });
         }
     }
     return out;
