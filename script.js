@@ -642,7 +642,7 @@ function drawPreviewOverlay() {
     if (preview.mode === 'oriented' && pt.angle !== null) {
         toolAngle = pt.angle;
     } else if (preview.mode === 'oriented') {
-        toolAngle = Math.atan2(-pt.ny, pt.nx) * 180 / Math.PI;
+        toolAngle = Math.atan2(pt.ny, pt.nx) * 180 / Math.PI;
     } else {
         toolAngle = 90;
     }
@@ -651,7 +651,7 @@ function drawPreviewOverlay() {
     const offsetPixelsX = machineSettings.toolOffsetX / machineSettings.scaleFactor;
     const offsetPixelsY = machineSettings.toolOffsetY / machineSettings.scaleFactor;
     // Choose rotation angle for tool rendering: in oriented mode, follow path tangent so origin→tip matches tangent
-    const rotationAngleRad = (preview.mode === 'oriented') ? Math.atan2(-pt.ny, pt.nx) : angleRad;
+    const rotationAngleRad = (preview.mode === 'oriented') ? Math.atan2(pt.ny, pt.nx) : angleRad;
     // Rotate offset in canvas coordinates (Y-down): flip Y component of rotation
     const rotatedOffsetX = offsetPixelsX * Math.cos(rotationAngleRad) + offsetPixelsY * Math.sin(rotationAngleRad);
     const rotatedOffsetY = offsetPixelsX * Math.sin(rotationAngleRad) - offsetPixelsY * Math.cos(rotationAngleRad);
@@ -693,7 +693,7 @@ function drawPreviewOverlay() {
     if (preview.showDirection) {
         // In base mode, keep arrow fixed pointing up. In oriented mode, align with path tangent.
         const arrowAngleRad = (preview.mode === 'oriented')
-            ? Math.atan2(-pt.ny, pt.nx) // tangent direction
+            ? Math.atan2(pt.ny, pt.nx) // tangent direction
             : -Math.PI / 2;             // fixed up (canvas up)
     // Arrow drawing direction now set by arrowAngleRad; tool origin line already uses rotationAngleRad above
         const dirX = Math.cos(arrowAngleRad);
