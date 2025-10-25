@@ -1264,3 +1264,16 @@ function parseGCode(text) {
     }
     return out;
 }
+
+// Initialize on page load
+window.addEventListener('DOMContentLoaded', function() {
+    // Ensure editor is hidden initially
+    const editorContainer = document.getElementById('editorCanvasContainer');
+    const drawModePanel = document.getElementById('drawModePanel');
+    if (editorContainer) {
+        editorContainer.style.display = 'none';
+    }
+    if (drawModePanel) {
+        drawModePanel.style.display = 'none';
+    }
+});
