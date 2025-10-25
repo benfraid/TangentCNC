@@ -552,13 +552,18 @@ function drawPreviewOverlay() {
     const pt = distToPoint(preview.currentDist);
     if (!pt) return;
 
+    // Larger preview elements on mobile
+    const isMobile = window.innerWidth <= 768;
+    const markerRadius = isMobile ? 10 : 6;
+    const markerStrokeWidth = isMobile ? 3 : 2;
+
     // Tool marker
     ctx.save();
     ctx.fillStyle = '#2ecc71';
     ctx.strokeStyle = '#145a32';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = markerStrokeWidth;
     ctx.beginPath();
-    ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+    ctx.arc(pt.x, pt.y, markerRadius, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
@@ -582,7 +587,7 @@ function drawPreviewOverlay() {
             dirY = -1;
         }
         
-        const L = 24;
+        const L = isMobile ? 36 : 24;  // Longer arrow on mobile
         const ax = pt.x + dirX * L;
         const ay = pt.y + dirY * L;
        
@@ -602,7 +607,7 @@ function drawPreviewOverlay() {
            }
        
            ctx.strokeStyle = arrowColor;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = isMobile ? 3 : 2;  // Thicker arrow on mobile
         ctx.beginPath();
         ctx.moveTo(pt.x, pt.y);
         ctx.lineTo(ax, ay);
@@ -611,7 +616,7 @@ function drawPreviewOverlay() {
         // Arrow head based on the direction vector
         const left = rotate(-Math.PI / 6, dirX, dirY);
         const right = rotate(Math.PI / 6, dirX, dirY);
-        const h = 10;
+        const h = isMobile ? 15 : 10;  // Larger arrowhead on mobile
         ctx.beginPath();
         ctx.moveTo(ax, ay);
         ctx.lineTo(ax - left.x * h, ay - left.y * h);
@@ -622,18 +627,20 @@ function drawPreviewOverlay() {
            // Display C-axis angle text (for oriented mode)
            if (preview.mode === 'oriented' && pt.angle !== null) {
                ctx.fillStyle = '#000000';
-               ctx.font = 'bold 12px Arial';
+               ctx.font = isMobile ? 'bold 16px Arial' : 'bold 12px Arial';  // Larger text on mobile
                ctx.textAlign = 'left';
                ctx.textBaseline = 'top';
                const angleText = `C: ${formatNum(pt.angle)}°`;
                const changeText = pt.angleDiff !== undefined ? ` (Δ${formatNum(pt.angleDiff)}°)` : '';
-               ctx.fillText(angleText + changeText, pt.x + 12, pt.y + 12);
+               const textOffset = isMobile ? 16 : 12;
+               ctx.fillText(angleText + changeText, pt.x + textOffset, pt.y + textOffset);
            
                // Warning indicator for large angle changes
                if (pt.angleDiff !== undefined && Math.abs(pt.angleDiff) > 90) {
                    ctx.fillStyle = '#e74c3c';
-                   ctx.font = 'bold 10px Arial';
-                   ctx.fillText('⚠ Large rotation', pt.x + 12, pt.y + 26);
+                   ctx.font = isMobile ? 'bold 14px Arial' : 'bold 10px Arial';  // Larger warning on mobile
+                   const warningOffset = isMobile ? 32 : 26;
+                   ctx.fillText('⚠ Large rotation', pt.x + textOffset, pt.y + warningOffset);
                }
            }
     }
