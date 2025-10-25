@@ -1,13 +1,167 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>TangentCNC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TangentCNC - Toolpath Editor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>TangentCNC</h1>
-    <canvas id="canvas" width="800" height="600"></canvas>
+    <div class="container">
+        <header>
+            <h1>🔧 TangentCNC</h1>
+            <p class="subtitle">Web-based CNC Toolpath Editor</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <button onclick="clearAll()" class="btn btn-danger">🗑️ Clear All</button>
+                <button onclick="toggleCurve()" class="btn btn-secondary">
+                    <span id="curveToggleText">Hide Curve</span>
+                </button>
+            </div>
+            
+            <div class="control-group">
+                <label>
+                    Curve Resolution:
+                    <input type="range" id="resolutionSlider" min="10" max="200" value="100" 
+                           oninput="updateResolution(this.value)">
+                    <span id="resolutionValue">100</span>
+                </label>
+            </div>
+            
+            <details class="settings-panel">
+                <summary>⚙️ Machining Parameters (Phase 3)</summary>
+                <div class="settings-grid">
+                    <div class="setting-row">
+                        <label>Unit:</label>
+                        <select id="unitSelect" onchange="updateSettings()">
+                            <option value="mm">Millimeters (mm)</option>
+                            <option value="inch">Inches (inch)</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <label>Scale Factor:</label>
+                        <input type="number" id="scaleFactor" value="0.1" step="0.01" min="0.001" onchange="updateSettings()">
+                        <span class="hint">Canvas pixels → real units</span>
+                    </div>
+                    <div class="setting-row">
+                        <label>Safe Height (Z):</label>
+                        <input type="number" id="safeHeight" value="5.0" step="0.5" onchange="updateSettings()">
+                        <span class="unit-label" id="safeHeightUnit">mm</span>
+                    </div>
+                    <div class="setting-row">
+                        <label>Cut Depth (Z):</label>
+                        <input type="number" id="cutDepth" value="-1.0" step="0.1" onchange="updateSettings()">
+                        <span class="unit-label" id="cutDepthUnit">mm</span>
+                    </div>
+                    <div class="setting-row">
+                        <label>Feed Rate (F):</label>
+                        <input type="number" id="feedRate" value="300" step="10" min="1" onchange="updateSettings()">
+                        <span class="unit-label" id="feedRateUnit">mm/min</span>
+                    </div>
+                    <div class="setting-row">
+                        <label>Rapid Rate (G0):</label>
+                        <input type="number" id="rapidRate" value="1000" step="50" min="1" onchange="updateSettings()">
+                        <span class="unit-label" id="rapidRateUnit">mm/min</span>
+                    </div>
+                        <div class="setting-row">
+                            <label>C-axis Angle Mode:</label>
+                            <select id="angleMode" onchange="updateSettings()">
+                                <option value="0-360">0° to 360°</option>
+                                <option value="-180-180" selected>-180° to 180°</option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <label>C-axis Offset:</label>
+                            <input type="number" id="angleOffset" value="0" step="1" onchange="updateSettings()">
+                            <span class="hint">degrees</span>
+                        </div>
+                        <div class="setting-row">
+                            <label>Use Shortest Path:</label>
+                            <input type="checkbox" id="shortestPath" checked onchange="updateSettings()">
+                            <span class="hint">Minimize rotation</span>
+                        </div>
+                </div>
+            </details>
+            
+            <div class="control-group playback">
+                <button id="btnPlayPause" onclick="togglePlay()" class="btn btn-primary">▶ Play</button>
+                <button onclick="resetPreview()" class="btn btn-secondary">⏮ Reset</button>
+                <label>
+                    Speed:
+                    <input type="range" id="previewSpeed" min="10" max="800" value="200" 
+                           oninput="updatePreviewSpeed(this.value)">
+                    <span id="previewSpeedValue">200 px/s</span>
+                </label>
+                <label>
+                    Show direction
+                    <input type="checkbox" id="showDirection" checked onchange="toggleDirection(this.checked)">
+                </label>
+            </div>
+            
+            <div class="control-group">
+                <label style="font-weight: 600; margin-right: 10px;">Preview Mode:</label>
+                <label>
+                    <input type="radio" name="previewMode" value="base" checked onchange="setPreviewMode('base')">
+                    Base (Fixed Up)
+                </label>
+                <label>
+                    <input type="radio" name="previewMode" value="oriented" onchange="setPreviewMode('oriented')">
+                    Oriented (C-axis)
+                </label>
+            </div>
+            
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="deleteMode" onchange="setDeleteMode(this.checked)">
+                    Delete Mode (tap/click point to delete)
+                </label>
+            </div>
+            
+            <div class="control-group">
+                <label style="flex:1">
+                    Progress:
+                    <input type="range" id="previewProgress" min="0" max="100" value="0" step="0.1" style="width: 60%">
+                    <span id="previewProgressValue">0%</span>
+                </label>
+            </div>
+            
+            <div class="control-group">
+                <button onclick="generateGCodePreview()" class="btn btn-primary">⚙️ Generate G-code</button>
+                <button onclick="downloadGCode()" class="btn btn-success">⬇️ Download .nc</button>
+                <button onclick="document.getElementById('gcodeFileInput').click()" class="btn btn-secondary">📤 Import G-code</button>
+                <input id="gcodeFileInput" type="file" accept=".nc,.gcode,.txt" style="display:none">
+                <button onclick="generateOrientedGCodePreview()" class="btn btn-secondary">🧭 Generate Oriented G-code</button>
+                <button onclick="downloadOrientedGCode()" class="btn btn-success">⬇️ Download Oriented .nc</button>
+            </div>
+            
+            <details id="gcodePreviewPanel">
+                <summary>G-code Preview (Before / After)</summary>
+                <div class="gcode-compare">
+                    <div class="gcode-col">
+                        <div class="gcode-col-header">Before (Base XY)</div>
+                        <textarea id="gcodeOutput" spellcheck="false" placeholder="Click 'Generate G-code' to preview..."></textarea>
+                    </div>
+                    <div class="gcode-col">
+                        <div class="gcode-col-header">After (With Orientation C/ORI)</div>
+                        <textarea id="gcodeOutputOriented" spellcheck="false" placeholder="Click 'Generate Oriented G-code' to preview..."></textarea>
+                    </div>
+                </div>
+            </details>
+            
+            <div class="info">
+                <span>Points: <strong id="pointCount">0</strong></span>
+                <span class="separator">|</span>
+                <span>Left Click: Add/Move | Right Click: Delete</span>
+            </div>
+        </div>
+
+        <canvas id="canvas" width="900" height="600"></canvas>
+
+        
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
