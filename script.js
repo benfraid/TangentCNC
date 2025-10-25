@@ -361,15 +361,12 @@ function toggleDrawMode() {
     const panel = document.getElementById('drawModePanel');
     const btn = document.getElementById('drawModeBtn');
     const editorContainer = document.getElementById('editorCanvasContainer');
-    console.log('toggleDrawMode called', { panel, btn, editorContainer });
     if (panel && btn) {
-        const isHidden = panel.style.display === 'none' || !panel.style.display;
-        console.log('isHidden:', isHidden);
+        const isHidden = panel.style.display === 'none' || panel.style.display === '';
         panel.style.display = isHidden ? 'block' : 'none';
         btn.textContent = isHidden ? '✏️ Hide Drawing Tools' : '✏️ Draw Path Manually';
         if (editorContainer) {
             editorContainer.style.display = isHidden ? 'block' : 'none';
-            console.log('editorContainer.style.display set to:', editorContainer.style.display);
         }
     }
 }
