@@ -650,9 +650,11 @@ function drawPreviewOverlay() {
     const angleRad = toolAngle * Math.PI / 180;
     const offsetPixelsX = machineSettings.toolOffsetX / machineSettings.scaleFactor;
     const offsetPixelsY = machineSettings.toolOffsetY / machineSettings.scaleFactor;
+    // Choose rotation angle for tool rendering: in oriented mode, follow path tangent so origin→tip matches tangent
+    const rotationAngleRad = (preview.mode === 'oriented') ? Math.atan2(-pt.ny, pt.nx) : angleRad;
     // Rotate offset in canvas coordinates (Y-down): flip Y component of rotation
-    const rotatedOffsetX = offsetPixelsX * Math.cos(angleRad) + offsetPixelsY * Math.sin(angleRad);
-    const rotatedOffsetY = offsetPixelsX * Math.sin(angleRad) - offsetPixelsY * Math.cos(angleRad);
+    const rotatedOffsetX = offsetPixelsX * Math.cos(rotationAngleRad) + offsetPixelsY * Math.sin(rotationAngleRad);
+    const rotatedOffsetY = offsetPixelsX * Math.sin(rotationAngleRad) - offsetPixelsY * Math.cos(rotationAngleRad);
 
     // Tool tip is on the path (cutting point), C-axis origin is offset backwards
     const tipX = pt.x;
@@ -693,6 +695,7 @@ function drawPreviewOverlay() {
         const arrowAngleRad = (preview.mode === 'oriented')
             ? Math.atan2(-pt.ny, pt.nx) // tangent direction
             : -Math.PI / 2;             // fixed up (canvas up)
+    // Arrow drawing direction now set by arrowAngleRad; tool origin line already uses rotationAngleRad above
         const dirX = Math.cos(arrowAngleRad);
         const dirY = Math.sin(arrowAngleRad);
         const L = isMobile ? 36 : 24;
