@@ -14,22 +14,6 @@
         </header>
 
         <div class="controls">
-            <div class="control-group">
-                <button onclick="clearAll()" class="btn btn-danger">🗑️ Clear All</button>
-                <button onclick="toggleCurve()" class="btn btn-secondary">
-                    <span id="curveToggleText">Hide Curve</span>
-                </button>
-            </div>
-            
-            <div class="control-group">
-                <label>
-                    Curve Resolution:
-                    <input type="range" id="resolutionSlider" min="10" max="200" value="100" 
-                           oninput="updateResolution(this.value)">
-                    <span id="resolutionValue">100</span>
-                </label>
-            </div>
-            
             <details class="settings-panel">
                 <summary>⚙️ Machining Parameters (Phase 3)</summary>
                 <div class="settings-grid">
@@ -85,48 +69,6 @@
                 </div>
             </details>
             
-            <div class="control-group playback">
-                <button id="btnPlayPause" onclick="togglePlay()" class="btn btn-primary">▶ Play</button>
-                <button onclick="resetPreview()" class="btn btn-secondary">⏮ Reset</button>
-                <label>
-                    Speed:
-                    <input type="range" id="previewSpeed" min="10" max="800" value="200" 
-                           oninput="updatePreviewSpeed(this.value)">
-                    <span id="previewSpeedValue">200 px/s</span>
-                </label>
-                <label>
-                    Show direction
-                    <input type="checkbox" id="showDirection" checked onchange="toggleDirection(this.checked)">
-                </label>
-            </div>
-            
-            <div class="control-group">
-                <label style="font-weight: 600; margin-right: 10px;">Preview Mode:</label>
-                <label>
-                    <input type="radio" name="previewMode" value="base" checked onchange="setPreviewMode('base')">
-                    Base (Fixed Up)
-                </label>
-                <label>
-                    <input type="radio" name="previewMode" value="oriented" onchange="setPreviewMode('oriented')">
-                    Oriented (C-axis)
-                </label>
-            </div>
-            
-            <div class="control-group">
-                <label>
-                    <input type="checkbox" id="deleteMode" onchange="setDeleteMode(this.checked)">
-                    Delete Mode (tap/click point to delete)
-                </label>
-            </div>
-            
-            <div class="control-group">
-                <label style="flex:1">
-                    Progress:
-                    <input type="range" id="previewProgress" min="0" max="100" value="0" step="0.1" style="width: 60%">
-                    <span id="previewProgressValue">0%</span>
-                </label>
-            </div>
-            
             <div class="control-group">
                 <button onclick="generateGCodePreview()" class="btn btn-primary">⚙️ Generate G-code</button>
                 <button onclick="downloadGCode()" class="btn btn-success">⬇️ Download .nc</button>
@@ -157,7 +99,60 @@
             </div>
         </div>
 
+        <!-- Editor Controls (positioned close to canvas) -->
+        <div class="editor-controls">
+            <div class="control-group">
+                <button onclick="clearAll()" class="btn btn-danger">🗑️ Clear All</button>
+                <label>
+                    Curve Resolution:
+                    <input type="range" id="resolutionSlider" min="10" max="200" value="100" 
+                           oninput="updateResolution(this.value)">
+                    <span id="resolutionValue">100</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="deleteMode" onchange="setDeleteMode(this.checked)">
+                    Delete Mode
+                </label>
+            </div>
+        </div>
+
         <canvas id="canvas" width="900" height="600"></canvas>
+
+        <!-- Playback and progress placed close to the canvas for all devices -->
+        <div class="playback-panel">
+            <div class="control-group playback">
+                <button id="btnPlayPause" onclick="togglePlay()" class="btn btn-primary">▶ Play</button>
+                <button onclick="resetPreview()" class="btn btn-secondary">⏮ Reset</button>
+                <div class="preview-mode-inline">
+                    <span class="inline-label">Preview Mode:</span>
+                    <label>
+                        <input type="radio" name="previewMode" value="base" checked onchange="setPreviewMode('base')">
+                        Base
+                    </label>
+                    <label>
+                        <input type="radio" name="previewMode" value="oriented" onchange="setPreviewMode('oriented')">
+                        Oriented
+                    </label>
+                </div>
+                <label>
+                    Speed:
+                    <input type="range" id="previewSpeed" min="10" max="800" value="200" 
+                           oninput="updatePreviewSpeed(this.value)">
+                    <span id="previewSpeedValue">200 px/s</span>
+                </label>
+                <label>
+                    Show direction
+                    <input type="checkbox" id="showDirection" checked onchange="toggleDirection(this.checked)">
+                </label>
+            </div>
+            <div class="control-group">
+                <label style="flex:1">
+                    Progress:
+                    <input type="range" id="previewProgress" min="0" max="100" value="0" step="0.1" style="width: 60%">
+                    <span id="previewProgressValue">0%</span>
+                </label>
+            </div>
+        </div>
 
         
     </div>

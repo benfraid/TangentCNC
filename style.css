@@ -48,6 +48,18 @@ h1 {
     border-radius: 8px;
 }
 
+.playback-panel {
+    margin-top: 10px;
+}
+
+.editor-controls {
+    margin-bottom: 10px;
+    padding: 12px;
+    background: #f0f8ff;
+    border-radius: 8px;
+    border: 2px dashed #1e90ff;
+}
+
 .control-group {
     display: flex;
     gap: 10px;
@@ -117,6 +129,18 @@ label {
     align-items: center;
     gap: 10px;
     font-size: 14px;
+    color: #333;
+}
+
+/* Inline preview mode next to playback */
+.preview-mode-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 8px;
+}
+.preview-mode-inline .inline-label {
+    font-weight: 600;
     color: #333;
 }
 
@@ -304,11 +328,17 @@ input#previewProgress {
     canvas { width: 100%; height: auto; }
     .btn { min-height: 44px; font-size: 16px; }
     label { font-size: 15px; }
+    header { margin-bottom: 12px; }
+    .controls { gap: 8px; margin-bottom: 10px; padding: 10px; }
     
     .control-group {
         flex-direction: column;
         align-items: flex-start;
     }
+
+    /* Tighten spacing below canvas on mobile */
+    .playback-panel { margin-top: 8px; }
+    .editor-controls { margin-bottom: 8px; padding: 10px; }
     
     .gcode-compare {
         grid-template-columns: 1fr;

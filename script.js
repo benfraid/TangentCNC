@@ -317,15 +317,6 @@ function clearAll() {
     updatePointCount();
 }
 
-function toggleCurve() {
-    showCurve = !showCurve;
-    const toggleText = document.getElementById('curveToggleText');
-    if (toggleText) {
-        toggleText.textContent = showCurve ? 'Hide Curve' : 'Show Curve';
-    }
-    draw();
-}
-
 function updateResolution(value) {
     curveResolution = parseInt(value);
     const resolutionValue = document.getElementById('resolutionValue');
@@ -678,7 +669,8 @@ function togglePlay(forceState) {
     }
     preview.playing = want;
     const btn = document.getElementById('btnPlayPause');
-    if (btn) btn.textContent = want ? '⏸ Pause' : '▶ Play';
+    const label = want ? '⏸ Pause' : '▶ Play';
+    if (btn) btn.textContent = label;
     if (want) {
         preview.lastTs = null;
         requestAnimationFrame(step);
