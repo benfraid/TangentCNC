@@ -315,6 +315,30 @@ input#previewProgress {
     font-weight: 500;
 }
 
+.app-footer {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+    text-align: center;
+    font-size: 13px;
+    color: #666;
+}
+
+.app-footer p {
+    margin: 0;
+}
+
+.app-footer a {
+    color: #5f27cd;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.app-footer a:hover {
+    color: #341f97;
+    text-decoration: underline;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .container {
